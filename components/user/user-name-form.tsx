@@ -48,13 +48,23 @@ export function UserNameForm({ user, className, ...props }: UserNameFormProps) {
 
   const username = watch("username")
   const [shareLink, setShareLink] = useState("")
+  const [isDefaultUsername, setIsDefaultUsername] = useState(user.username === user.id)
+
 
   useEffect(() => {
     // This will only be executed on the client side where `window` is defined
     setShareLink(`${window.location.origin}/${username}`)
-  }, [username]) // Update the share link whenever the username changes
+       setIsDefaultUsername(username === user.id)
+     }, [username, user.id])
 
   async function onSubmit(data: FormData) {
+       if (data.username === user.id) {
+           setError("username", {
+             type: "manual",
+             message: "Please choose a username different from your ID.",
+           })
+           return
+         }
     const response = await fetch(`/api/users/${user.id}`, {
       method: "PATCH",
       headers: {
@@ -102,7 +112,12 @@ export function UserNameForm({ user, className, ...props }: UserNameFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>Username</CardTitle>
-          <CardDescription>Enter your publicly display name.</CardDescription>
+
+         <CardDescription>
+           {isDefaultUsername
+             ? "Please set a username different from your ID."
+             : "Enter your publicly displayed name."}
+         </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-1">
@@ -120,6 +135,11 @@ export function UserNameForm({ user, className, ...props }: UserNameFormProps) {
                 {errors.username.message}
               </p>
             )}
+              {isDefaultUsername && (
+             <p className="px-1 text-xs text-yellow-600">
+               Your current username is the same as your ID. Please change it.
+             </p>
+           )}
             {/* Sharing Link Box */}
             <div className="mt-4">
               <Label htmlFor="shareLink">Your Share Link</Label>
@@ -150,7 +170,7 @@ export function UserNameForm({ user, className, ...props }: UserNameFormProps) {
           <button
             type="submit"
             className={cn(buttonVariants(), className)}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isDefaultUsername}
           >
             {isSubmitting && (
               <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
